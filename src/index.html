@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" ng-app="demo-app">
+<head>
+	<meta charset="UTF-8">
+	<title>Angular Demo App</title>
+	<link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+
+	<base href="/">
+</head>
+<body>
+
+	<nav>
+		<a ui-sref="home">Home</a> | <a ui-sref="settings">Settings</a> | <a ui-sref="about">About</a>
+	</nav>
+
+	<main>
+		<ui-view></ui-view>
+	</main>
+
+	<footer>
+		<a ng-href="{{url}}">Webpack Angular Starter</a>
+	</footer>
+
+</body>
+</html>

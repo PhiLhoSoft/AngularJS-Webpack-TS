@@ -42,28 +42,49 @@ angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule, 
 				ctrl.productName = nameModel.applicationName;
 				ctrl.productVersion = '0.1';
 
-				ctrl.userName = 'Georges';
+				// Simple variable, string
+				ctrl.userName = 'Jean-Jacques';
+				ctrl.userCountry = 'Italy';
+				// Simple variable, number
 				ctrl.userAge = 42;
-				ctrl.userInfo = { originalName: ctrl.userName, currentName: ctrl.userName, nameLength: ctrl.userName ? ctrl.userName.length : 0,
-					age: ctrl.userAge, weight: 100 };
+				ctrl.userWeight = 66;
+				// Object
+				ctrl.userInfo =
+				{
+					name: 'Pierre-Paul',
+					country: 'Germany',
+					tick: '#',
+					age: 99,
+					weight: 100,
+				};
+				// Called from template
 				ctrl.changeUser = () =>
 				{
-					ctrl.userName = ctrl.userInfo.originalName = ctrl.userName.split('').reverse().join('');
+					ctrl.userName = ctrl.userInfo.name = ctrl.userName.split('').reverse().join('');
+					ctrl.userCountry = ctrl.userCountry.substring(0, ctrl.userCountry.length - 1);
 					ctrl.userAge--;
+					ctrl.userWeight--;
+					ctrl.userInfo.country = ctrl.userInfo.country.substring(0, ctrl.userInfo.country.length - 1);
 					ctrl.userInfo.age--;
 					ctrl.userInfo.weight--;
+					// Initially empty (undefined -> empty by Angular binding). Upon first init, display the value. Won't update later.
+					ctrl.oneTime = ctrl.userAge;
 				};
+				// Given to directive, called from its template
 				ctrl.update = (name: string) =>
 				{
 					ctrl.userName = name ? name.toUpperCase() : '(unknown)';
+					ctrl.userAge++;
+					ctrl.userCountry += '!';
 				};
-				ctrl.alert = (name: string, age: number) =>
+				// Given to directive, called from its code
+				ctrl.changeUserInfo = (name: string, age: number) =>
 				{
-					alert(`User ${name} is ${age} year${age === 1 ? "" : "s"} old`);
+					ctrl.userInfo.name = name || '(nobody)';
+					ctrl.userInfo.age = age;
 				};
 			};
 
-			// See http://www.befundoo.com/university/tutorials/angularjs-2-controllers/ (and good idea anyway)
 			ctrl._activate();
 		}
 	]);

@@ -114,12 +114,12 @@ function makeWebpackConfig()
 		publicPath: '/',
 
 		// Filename for entry points
-		// Only adds hash in build mode. Use chunkhash instead of hash, so that vendor chunk remains stable across builds
+		// Only adds hash in production mode. Use chunkhash instead of hash, so that vendor chunk remains stable across builds
 		// (long term caching, see https://medium.com/@okonetchnikov/long-term-caching-of-static-assets-with-webpack-1ecb139adb95 for detailed explanations)
 		filename: isProd ? '[name].[chunkhash].js' : '[name].bundle.js',
 
 		// Filename for non-entry points
-		// Only adds hash in build mode
+		// Only adds hash in production mode
 		chunkFilename: isProd ? '[name].[chunkhash].js' : '[name].bundle.js'
 	};
 

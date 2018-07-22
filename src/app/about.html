@@ -4,34 +4,3 @@
 	<p><span>Product name</span> = {{about.productName}}</p>
 	<p><span>Product version</span> = {{about.productVersion}}</p>
 </div>
-
-<div style="padding: 16px; text-align: left;">
-<h3>Playground about directive scope binding and template binding</h3>
-See <a href="https://docs.angularjs.org/api/ng/service/$compile#-scope-">AngularJS doc</a> for scope symbol definitions.<br>
-Showing information about user: {{about.userName}} {{about.userCountry}} {{about.userAge}} {{about.userWeight}}<br>
-Showing user info (object): {{about.userInfo | json}}<br>
-One-time binding: {{::about.oneTime}}<br>
-<input type="button" value="Change" ng-click="about.changeUser()"/><br>
-<br>
-<show-information
-	name="{{about.userName}}"
-	text="Some random text"
-	at-model-binding="{{about.userAge}}"
-	at-model-binding-one-time="{{:: about.userAge}}"
-	at-expr-binding="{{about.userInfo.country.length * 2}}"
-	at-expr-binding-one-time="{{:: about.userInfo.country.length * 2}}"
-	at-object-binding="{{about.userInfo}}"
-	eq-model="about.userCountry"
-	eq-expr="about.userInfo.country.length * 2"
-	eq-expr-one-time=":: about.userInfo.country.length * 2"
-	eq-options="{ opt1: 111, opt2: about.userCountry, opt3: about.userInfo.weight }"
-	eq-object="about.userInfo"
-	eq-boolean-expr="about.userInfo.country.length % 2 === 0"
-	eq-boolean-constant="true"
-	lt-object="about.userInfo"
-	lt-property="about.userInfo.weight"
-	lt-value="about.userWeight"
-	method="about.update(feedback)"
-	callback="about.changeUserInfo(foo, bar)"
-></show-information>
-</div>

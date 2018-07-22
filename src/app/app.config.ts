@@ -25,6 +25,13 @@ export function routing($urlRouterProvider: uirouter.UrlRouterProvider, $statePr
 			controller: 'SettingsController',
 			controllerAs: 'settings'
 		})
+		.state('bindings',
+		{
+			url: '/bindings',
+			template: require('@bindings/bindings.html'),
+			controller: 'BindingsController',
+			controllerAs: 'bindings'
+		})
 		.state('about',
 		{
 			url: '/about',

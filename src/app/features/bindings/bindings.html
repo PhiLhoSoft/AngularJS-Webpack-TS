@@ -1,0 +1,34 @@
+<h1 class="title">AngularJS Bindings Playground</h1>
+
+<p>Playground about directive scope binding and template binding.<br>
+See <a href="https://docs.angularjs.org/api/ng/service/$compile#-scope-">AngularJS doc</a> for scope symbol definitions.
+</p>
+
+<div style="padding: 16px; text-align: left;">
+Showing information about user: {{bindings.userName}} {{bindings.userCountry}} {{bindings.userAge}} {{bindings.userWeight}}<br>
+Showing user info (object): {{bindings.userInfo | json}}<br>
+One-time binding: {{::bindings.oneTime}}<br>
+<input type="button" value="Change" ng-click="bindings.changeUser()"/><br>
+<br>
+<show-information
+	name="{{bindings.userName}}"
+	text="Some random text"
+	at-model-binding="{{bindings.userAge}}"
+	at-model-binding-one-time="{{:: bindings.userAge}}"
+	at-expr-binding="{{bindings.userInfo.country.length * 2}}"
+	at-expr-binding-one-time="{{:: bindings.userInfo.country.length * 2}}"
+	at-object-binding="{{bindings.userInfo}}"
+	eq-model="bindings.userCountry"
+	eq-expr="bindings.userInfo.country.length * 2"
+	eq-expr-one-time=":: bindings.userInfo.country.length * 2"
+	eq-options="{ opt1: 111, opt2: bindings.userCountry, opt3: bindings.userInfo.weight }"
+	eq-object="bindings.userInfo"
+	eq-boolean-expr="bindings.userInfo.country.length % 2 === 0"
+	eq-boolean-constant="true"
+	lt-object="bindings.userInfo"
+	lt-property="bindings.userInfo.weight"
+	lt-value="bindings.userWeight"
+	method="bindings.update(feedback)"
+	callback="bindings.changeUserInfo(foo, bar)"
+></show-information>
+</div>

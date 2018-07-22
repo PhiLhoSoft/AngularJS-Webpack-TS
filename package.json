@@ -8,7 +8,7 @@
 		"url": "https://github.com/PhiLhoSoft/angularjs-webpack-ts.git"
 	},
 	"author": "Philippe Lhoste",
-	"license": "MIT",
+	"license": "zlib/libpng",
 	"bugs":
 	{
 		"url": "https://github.com/PhiLhoSoft/angularjs-webpack-ts/issues"
@@ -86,7 +86,7 @@
 		"watch-ts": "tsc -w",
 		"tslint": "tslint -c tslint.json -p tsconfig.json",
 
-		"start": "npm run server",
+		"start": "npm run server:app && npm run server:api",
 		"test": "rimraf coverage && karma start",
 
 		"test-debug": "karma start -D",

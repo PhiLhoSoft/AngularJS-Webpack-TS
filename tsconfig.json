@@ -18,6 +18,7 @@
 			"@app/*": [ "features/*" ],
 			"@home/*": [ "features/home/*" ],
 			"@settings/*": [ "features/settings/*" ],
+			"@bindings/*": [ "features/bindings/*" ],
 			"@model/*": [ "model/*" ],
 			"@directives/*": [ "directives/*" ],
 			"@services/*": [ "services/*" ]

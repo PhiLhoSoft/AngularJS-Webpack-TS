@@ -7,13 +7,14 @@
 		"target": "es5",
 		"lib": [ "es6", "dom" ],
 		"sourceMap": true,
-		"allowJs": false,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"allowJs": true,
 		"moduleResolution": "node",
 		"typeRoots": [ "node_modules/@types" ],
 		"baseUrl": "./src/app",
 		"paths":
 		{
-			"@root/*": [ "*" ],
 			"@app/*": [ "features/*" ],
 			"@home/*": [ "features/home/*" ],
 			"@settings/*": [ "features/settings/*" ],
@@ -36,5 +37,9 @@
 		"public",
 		"scripts",
 		"coverage"
+	],
+	"include":
+	[
+		"src/**/*.ts"
 	]
 }

@@ -4,7 +4,7 @@ import { AddNameDirective } from './addNameDirective';
 import { AddNameController } from './addNameController';
 import { SettingsController } from './settingsController';
 
-import 'settings.styl';
+import './settings.styl';
 
 export const settingsModule = angular.module('app.settings', [])
 	.directive('addName', AddNameDirective.factory())

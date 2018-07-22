@@ -7,14 +7,11 @@ export class HomeController
 
 	public name: string | undefined;
 
-	private nameModel: NameModel;
-	private randomness: Randomness<string>;
-
-	contructor(nameModel: NameModel, randomness: Randomness<string>)
+	public constructor(
+		private nameModel: NameModel,
+		private randomness: Randomness<string>
+	)
 	{
-		this.nameModel = nameModel;
-		this.randomness = randomness;
-
 		this.name = 'World';
 	}
 

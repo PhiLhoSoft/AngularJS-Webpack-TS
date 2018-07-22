@@ -4,3 +4,15 @@
 	<p><span>Product name</span> = {{about.productName}}</p>
 	<p><span>Product version</span> = {{about.productVersion}}</p>
 </div>
+
+<div style="padding: 16px;">
+Showing information about {{about.userName}}: ({{about.userInfo.currentName}}, {{about.userInfo.age}}<br>
+[Two-way binding] {{about.userInfo.weight}} [One-time binding] {{::about.userInfo.weight}} [One-way binding] {{about.userAge}})
+<input type="button" value="Change" ng-click="about.changeUser()"/>
+<br>
+<show-information name="{{about.userName}}" value1="{{about.userName.length * 2}}" value2="about.userName.length * 2" value3="about.userName"
+	options="{ opt1: 111, opt2: 'foooo', opt3: about.userName }" info="about.userInfo" text="Some random text"
+	method="about.update(feedback)" callback="about.alert(foo, bar)"
+	one-way-1="about.userInfo" one-way-2="about.userInfo.weight" one-way-3="about.userAge"
+	></show-information>
+</div>

@@ -98,7 +98,8 @@
 			true,
 			"check-accessor"
 		],
-		"member-ordering": [
+		"member-ordering":
+		[
 			true,
 			"public-before-private",
 			"static-before-instance",
@@ -120,11 +121,9 @@
 		"no-null-keyword": true,
 		"no-construct": true,
 		"no-inferrable-types": true,
-		"no-use-before-declare": true,
 		"no-var-keyword": true,
 		"no-shadowed-variable": false,
 		"no-duplicate-variable": true,
-		"no-unused-variable": true,
 		"no-unused-expression": true,
 		"no-switch-case-fall-through": false,
 		"radix": true,

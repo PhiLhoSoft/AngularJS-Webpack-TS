@@ -1,8 +1,5 @@
 import * as uirouter from '@uirouter/angularjs';
 
-// tslint:disable no-require-imports
-declare function require(name: string): any; // Webpack will manage the require calls
-
 (<any>routing).$inject = [ '$urlRouterProvider', '$stateProvider', '$locationProvider' ];
 
 export function routing($urlRouterProvider: uirouter.UrlRouterProvider, $stateProvider: uirouter.StateProvider, $locationProvider: ng.ILocationProvider): void
@@ -12,25 +9,26 @@ export function routing($urlRouterProvider: uirouter.UrlRouterProvider, $statePr
 	$locationProvider.html5Mode(true);
 	$urlRouterProvider.otherwise('/');
 
+	// tslint:disable no-require-imports
 	$stateProvider
 		.state('home',
 		{
 			url: '/',
-			template: require('features/home/home.html'),
+			template: require('@home/home.html'),
 			controller: 'HomeController',
 			controllerAs: 'home'
 		})
 		.state('settings',
 		{
 			url: '/settings',
-			template: require('features/setting/settings.html'),
+			template: require('@settings/settings.html'),
 			controller: 'SettingsController',
 			controllerAs: 'settings'
 		})
 		.state('about',
 		{
 			url: '/about',
-			template: require('about.html'),
+			template: require('./about.html'),
 			controller: 'AboutController',
 			controllerAs: 'about'
 		});

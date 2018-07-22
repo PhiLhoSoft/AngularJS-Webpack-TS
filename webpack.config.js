@@ -15,10 +15,11 @@ var CopyWebpackPlugin = require('copy-webpack-plugin');
 var TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 // Paths
+var publicPath = './public/';
 var srcPath = './src/';
-var prodPath = './public/';
-var srcScriptPath = srcPath + 'app/';
+var srcAppPath = srcPath + 'app/';
 var srcAssetsPath = srcPath + 'assets/';
+var resolvedSrcAppPath = nodePath.resolve(srcAppPath);
 
 /**
  * Env
@@ -30,9 +31,10 @@ var srcAssetsPath = srcPath + 'assets/';
  * npm run test-debug   -> run tests in Chrome and watch for changes, without coverage: this allows to debug the tests in Chrome
  * npm run test-verbose -> run tests in with special reporters
  * npm run stats        -> generate a statistics file in Json format. Can be used by webpack-bundle-analyzer.
- * npm run build        -> build for production
+ * npm run build:debug  -> build for debug - stuff goes to public, not minimized
+ * npm run build:prod   -> build for production
  */
-var isTest = false, isDebugTest = false, isDebug = false, isProd = false, stats = false;
+var isTest = false, isBuild = false, isDebugTest = false, isDebug = false, isProd = false, stats = false;
 var ENV = process.env.npm_lifecycle_event;
 if (ENV === undefined) // We ran Webpack directly without going through NPM: we want a prod build.
 {
@@ -41,23 +43,24 @@ if (ENV === undefined) // We ran Webpack directly without going through NPM: we 
 else
 {
 	isTest = ENV.startsWith('test');
+	isBuild = ENV.startsWith('build');
 	// Debug test in browser: don't use coverage which instruments / messes the code.
 	// Find sources in webpack://./src/app in Chrome DevTools or use Ctrl+P to find them by name.
 	isDebugTest = ENV === 'test-debug';
-	isDebug = ENV === 'server';
+	isDebug = ENV === 'server:webpack' || ENV === 'build:debug';
 	stats = ENV === 'stats';
-	isProd = ENV === 'build' || (!isTest && !isDebug && !stats); // Unknown -> default to prod
+	isProd = ENV === 'build:prod';
 }
 if (!stats)
 {
-	console.log('NPM Lifecycle Event:', ENV, '-- test?', isTest, '| debug?', isDebug, '| prod?', isProd);
+	console.log('NPM Lifecycle Event:', ENV, '-- test?', isTest, '| build?', isBuild, '| debug?', isDebug, '| debugTest?', isDebugTest, '| prod?', isProd);
 }
 // Collect all dependencies declared in package.json
 var dependencies = require('./package.json').dependencies;
 
 /**
  * Config
- * Reference: http://webpack.github.io/docs/configuration.html
+ * Reference: https://webpack.js.org/configuration/
  * This is the object where all configuration gets set
  */
 var config;
@@ -69,7 +72,14 @@ else
 {
 	config = makeWebpackConfig();
 }
-config = addCommonPlugins(addCommonLoaders(addResolve(config)));
+// Add stuff common to tests and non-test runs
+config = addCommonLoaders(addResolve(config));
+
+if (!isProd)
+{
+	// Keep warning about chunk sizes to production mode only, it is irrelevant in dev
+	config.performance = { hints: false };
+}
 
 function makeWebpackConfig()
 {
@@ -77,31 +87,31 @@ function makeWebpackConfig()
 
 	/**
 	 * Entry
-	 * Reference: http://webpack.github.io/docs/configuration.html#entry
+	 * Reference: https://webpack.js.org/configuration/entry-context#entry
 	 * Should be an empty object if it's generating a test build
 	 * Karma will set this when it's a test build
 	 */
 	config.entry =
 	{
-		app: srcScriptPath + 'app.ts',
+		app: srcAppPath + 'app.ts',
 		// Defines the modules that go to the 'vendor' bundle.
 		vendor: Object.keys(dependencies),
 	};
 
 	/**
 	 * Output
-	 * Reference: http://webpack.github.io/docs/configuration.html#output
+	 * Reference: https://webpack.js.org/configuration/output
 	 * Should be an empty object if it's generating a test build.
 	 * Karma will handle setting it up for you when it's a test build.
 	 */
 	config.output =
 	{
 		// Absolute output directory
-		path: nodePath.resolve('public/'),
+		path: nodePath.resolve(publicPath),
 
 		// Output path from the view of the page
 		// Uses webpack-dev-server in development
-		publicPath: isProd ? '/' : 'http://localhost:8080/',
+		publicPath: '/',
 
 		// Filename for entry points
 		// Only adds hash in build mode. Use chunkhash instead of hash, so that vendor chunk remains stable across builds
@@ -123,24 +133,16 @@ function makeWebpackConfig()
 	}
 
 	/**
-	 * Don't parse large libraries putting stuff at the global level.
-	 * http://stackoverflow.com/questions/28969861/managing-jquery-plugin-dependency-in-webpack
-	 */
-	// config.noParse =
-	// [
-	// 	/[\/\\]node_modules[\/\\]angular[\/\\]angular\.js$/
-	// ];
-
-	/**
 	 * Devtool
-	 * Reference: http://webpack.github.io/docs/configuration.html#devtool
+	 * Reference: https://webpack.js.org/configuration/devtool
 	 * Type of sourcemap to use per build type.
 	 */
 	if (isDebug) // server mode (dev / debug)
 	{
 		// config.devtool = 'eval-source-map'; // Perhaps faster to generate, but doesn't work on startup (eg. breakpoints in app.js)
-		// config.devtool = 'source-map'; // So switch to this one if you have to step in app.js
-		config.devtool = 'cheap-module-eval-source-map';
+		config.devtool = 'source-map'; // So switch to this one if you have to step in app.js
+		// config.devtool = 'inline-source-map';
+		// config.devtool = 'cheap-module-eval-source-map';
 	}
 	else if (isProd)
 	{
@@ -148,29 +150,29 @@ function makeWebpackConfig()
 	}
 
 	/**
-	 * Loaders
-	 * Reference: http://webpack.github.io/docs/configuration.html#module-loaders
-	 * List: http://webpack.github.io/docs/list-of-loaders.html
+	 * Module loaders
+	 * Concept: https://webpack.js.org/concepts/modules/
+	 * Reference: https://webpack.js.org/configuration/module
+	 * List: https://webpack.js.org/loaders
 	 * This handles most of the magic responsible for converting modules.
 	 */
 
-	var styleLoader =
-	{
-		loader: isProd ? MiniCssExtractPlugin.loader : 'style-loader',
-		options: { sourceMap: true },
-	};
+	function makeCssLoader(loader) { return { loader: loader, options: { sourceMap: true } }; }
+
+	// var styleLoader = makeCssLoader(isProd ? MiniCssExtractPlugin.loader : 'style-loader');
+	var styleLoader = makeCssLoader(MiniCssExtractPlugin.loader);
 
 	/**
-	 * PostCSS
-	 * Reference: https://github.com/postcss/autoprefixer-core
-	 * Add vendor prefixes to your CSS.
+	 * PostCSS (see below)
 	 */
 	var postcssLoader =
 	{
 		loader: 'postcss-loader',
 		options:
 		{
+			ident: 'postcsss',
 			sourceMap: true,
+			plugins: (loader) => [ require('autoprefixer')() ],
 			config: { ctx: { autoprefixer: { browsers: [ 'last 2 versions' ] } } }
 		}
 	};
@@ -180,14 +182,6 @@ function makeWebpackConfig()
 	{
 		rules:
 		[
-			{
-				// TYPESCRIPT LOADER
-				// Reference: https://webpack.js.org/guides/typescript/
-				// Allow processing TypeScript files.
-				test: /\.ts$/,
-				use: 'ts-loader',
-				exclude: /node_modules/,
-			},
 			{
 				// STYLUS LOADER
 				// Reference: https://github.com/shama/stylus-loader
@@ -201,7 +195,7 @@ function makeWebpackConfig()
 				//
 				// Reference: https://github.com/webpack-contrib/mini-css-extract-plugin
 				// Then extract CSS files (out of JS) in production builds
-				//
+				// OR
 				// Reference: https://github.com/webpack/style-loader
 				// Adds CSS to the DOM by injecting a <style> tag. Used in development.
 				test: /\.styl$/,
@@ -209,9 +203,9 @@ function makeWebpackConfig()
 				use:
 				[
 					styleLoader,
-					{ loader: 'css-loader', options: { sourceMap: true } },
+					makeCssLoader('css-loader'),
 					postcssLoader,
-					{ loader: 'stylus-loader', options: { sourceMap: true } },
+					makeCssLoader('stylus-loader'),
 				],
 				exclude: /node_modules/,
 			},
@@ -223,81 +217,12 @@ function makeWebpackConfig()
 				use:
 				[
 					styleLoader,
-					{ loader: 'css-loader', options: { sourceMap: true } },
+					makeCssLoader('css-loader'),
 					postcssLoader,
 				],
 			},
 		],
 	};
-
-	// ASSET LOADER
-	// Reference: https://github.com/webpack/file-loader
-	// Copy asset files (images, fonts...) to output.
-	// Pass along the updated reference to your code.
-	// You can add here any file extension you want to get copied to your output.
-	if (isProd)
-	{
-		config.module.rules.push(
-			{
-				// Manage the font files specifically (warning: SVG can be used for something else than fonts!)
-				test: /\.(svg|woff|woff2|ttf|eot)$/,
-				loader: 'file',
-				query:
-				{
-					name: './fonts/[name].[ext]',
-					publicPath: './'  // A bit clumsy as it generates ./../fonts/xxx but it works. Empty string is seen as false :-(
-				}
-			},
-			{
-				// Handle remaining files. It comes after the others, so it catches the remainder.
-//~ 				test: /[\\\/]images[\\\/][^\\\/]+\.(png|jpg|jpeg|gif)$/, // More specific, doesn't seem necessary
-				test: /\.(png|jpg|jpeg|gif)$/,
-				loader: 'file',
-				query:
-				{
-					emitFile: false,
-					name: '[name].[ext]',
-					publicPath: prodPath + 'assets/img/',
-				}
-			}
-		);
-	}
-	else
-	{
-		// Just copy the files as is
-		config.module.rules.push(
-			{
-				test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/,
-				loader: 'file',
-			}
-		);
-	}
-
-	// Linters and hinters
-	config.module.rules.push(
-		{
-			enforce: 'pre',
-			test: /\.html$/,
-			include: nodePath.resolve(srcPath + 'app/'),
-			loader: 'htmlhint'
-		},
-		{
-			enforce: 'pre',
-			test: /\.styl$/,
-			include: nodePath.resolve(srcPath + 'app/styles'),
-			loader: 'stylint'
-		},
-		{
-			enforce: 'pre',
-			test: /\.js$/,
-			include: nodePath.resolve(srcScriptPath),
-			loader: 'eslint-loader'
-		}
-	);
-	// config.stylint =
-	// {
-	// 	config: nodePath.resolve(srcPath + '.stylintrc')
-	// };
 
 	config.plugins =
 	[
@@ -308,49 +233,46 @@ function makeWebpackConfig()
 			// Instrument the existing index
 			template: srcPath + 'index.html',
 			// Produces it there
-			filename: 'index.html',
+			filename: nodePath.resolve(publicPath + 'index.html'),
 			// Put JS tags at the end of the body (not in the header)
-			inject: 'body'
+			inject: 'body',
+			chunksSortMode: 'manual',
+			chunks: [ 'vendor', 'app' ],
 		}),
 
 		// Reference: https://github.com/webpack-contrib/mini-css-extract-plugin
 		// Extract CSS to one file (otherwise it is inlined in the JS).
-		// Disabled when not in build mode.
 		new MiniCssExtractPlugin(
 		{
-			filename: isProd ? '[name].[chunkhash].css' : '[name].css',
+			filename: isProd ? '[name].[chunkhash].css' : '[name].bundle.css',
 		}),
 	];
 
-	// Add build specific plugins
-	if (isProd)
+	if (isBuild)
 	{
 		// Reference: https://webpack.js.org/plugins/split-chunks-plugin/
 		// Separates the libraries from the application.
 		config.optimization =
 		{
-			minimize: true,
+			// minimize: isProd, // Now done by mode option
 			splitChunks:
 			{
+				chunks: 'all',
+				minSize: 1000,
 				cacheGroups:
 				{
 					vendors:
 					{
 						name: 'vendor',
 						test: /[\\/]node_modules[\\/]/,
-						chunks: 'all',
-					},
-					styles:
-					{
-						name: 'styles',
-						test: /\.css$/,
-						chunks: 'all',
+						chunks: 'initial',
 						enforce: true,
-					}
+					},
 				}
 			}
 		};
 
+		// Add build specific plugins
 		config.plugins.push(
 			// Reference: https://webpack.js.org/plugins/no-emit-on-errors-plugin/
 			// Only emit files when there are no errors.
@@ -358,6 +280,7 @@ function makeWebpackConfig()
 
 			// Reference: https://github.com/johnagan/clean-webpack-plugin
 			// Clean the destination directories / files: since names are generated with hashes, they won't be overwritten.
+			// Now done with rimraf in npm scripts
 			// new CleanWebpackPlugin(
 			// 	[ prodPath, ]
 			// ),
@@ -366,29 +289,39 @@ function makeWebpackConfig()
 			// Copy assets to the destination relative to build directory (declared in 'output' configuration).
 			// Do that instead of using the file-loader because some images are loaded in templates with a computed name
 			// (eg. flags based on country id, etc.) which must be preserved.
+			// But it doesn't work with webpack-dev-server directly,
+			// so we have to do a build run (prod or debug) before to generate files in public directory.
 			new CopyWebpackPlugin(
-			[
-				{
-					from: srcAssetsPath + 'img',
-					to: 'assets/img/'
-				},
-				{
-					from: srcAssetsPath + 'img/favicon.ico',
-					to: './'
-				},
-			]),
+				[
+					{
+						from: srcAssetsPath + 'img',
+						to: 'assets/img/'
+					},
+					{
+						from: srcAssetsPath + 'img/favicon.ico',
+						to: './'
+					},
+				]),
 		);
 	}
 
 	/**
 	 * Dev server configuration
-	 * Reference: http://webpack.github.io/docs/configuration.html#devserver
-	 * Reference: http://webpack.github.io/docs/webpack-dev-server.html
+	 * Reference: https://webpack.js.org/configuration/dev-server/
+	 * Access the app at http://localhost:8080/webpack-dev-server/ (trailing slash is important!)
 	 */
 	config.devServer =
 	{
-		contentBase: './src',
-		stats: 'minimal'
+		// To find index.html and assets. Currently, we have to run a build before, and then there is no HMR...
+		// Seems not to work with HtmlWebpackPlugin. See https://gist.github.com/ampedandwired/becbbcf91d7a353d6690
+		contentBase: nodePath.resolve(publicPath),
+		publicPath: '/',
+		port: 8080,
+		historyApiFallback: true,
+		hot: true,
+		inline: true,
+    	// watchContentBase: true,
+		stats: 'minimal',
 	};
 
 	return config;
@@ -397,7 +330,8 @@ function makeWebpackConfig()
 function makeWebpackTestConfig()
 {
 	// Configuration is much simpler in test (no CSS, etc.)
-	return {
+	var config =
+	{
 		mode: 'development',
 
 		devtool: 'inline-source-map',
@@ -407,21 +341,15 @@ function makeWebpackTestConfig()
 			rules:
 			[
 				{
-					enforce: 'pre',
-					test: /\.ts$/,
-					loader: 'tslint-loader',
-					exclude: /node_modules/,
-				},
-				{
 					// STYLUS LOADER
 					test: /\.styl$/,
-					loader: 'null'
+					use: 'null-loader'
 				},
 				{
 					// CSS LOADER
 					// For CSS files from modules.
 					test: /\.css$/,
-					loader: 'null'
+					use: 'null-loader'
 				},
 			]
 		},
@@ -436,21 +364,26 @@ function makeWebpackTestConfig()
 		// Skips node_modules and files that end with .test.js.
 		config.module.rules.push(
 			{
-				enforce: 'pre',
-				test: /\.js$/,
-				include: nodePath.resolve(srcScriptPath),
-				exclude: /\.test\.js$/,
-				loader: 'istanbul-instrumenter'
+				enforce: 'post',
+				test: /\.ts$/,
+				include: resolvedSrcAppPath,
+				exclude: /\.test\.ts$/,
+				use:
+				{
+					use: 'istanbul-instrumenter-loader',
+					query: { esModules: true }
+				}
 			}
 		);
 	}
+	return config;
 }
 
 function addResolve(config)
 {
 	/**
 	 * Resolve
-	 * Reference: http://webpack.github.io/docs/configuration.html#resolve
+	 * Reference: https://webpack.js.org/configuration/#resolve
 	 * Alias some paths, to avoid using require('../../foo') depending on depth in hierarchy...
 	 */
 	config.resolve =
@@ -467,7 +400,8 @@ function addResolve(config)
 		// },
 		// Replaced with the following to generate the aliases from tsconfig (one source of truth is better...)
 		plugins: [ new TsconfigPathsPlugin() ],
-		extensions: [ '.ts', '.js', '.json', '.html', '.styl' ],
+		// Tells what extensions to use / try with imports without extension.
+		extensions: [ '.js', '.ts', '.json' ],
 	};
 
 	return config;
@@ -476,53 +410,51 @@ function addResolve(config)
 function addCommonLoaders(config)
 {
 	config.module.rules.push(
+		// Linters and hinters
 		{
-			// Load jQuery and expose it as global variable before loading AngularJS,
-			// so that the latter will use it instead of jqLite.
-			// Reference: https://github.com/webpack/expose-loader
-			// and http://stackoverflow.com/questions/36065931/webpack-how-to-make-angular-auto-detect-jquery-and-use-it-as-angular-element-in
-			test: require.resolve('jquery'), // Full path in node_modules
-			loader: 'expose-loader?$!expose-loader?jQuery'
+			enforce: 'pre',
+			test: /\.ts$/,
+			use: 'tslint-loader',
+			include: resolvedSrcAppPath,
+		},
+		{
+			enforce: 'pre',
+			test: /\.html$/,
+			use: 'htmlhint-loader',
+			include: resolvedSrcAppPath,
+		},
+		// Would add a Stylus linter but the one for Webpack is obsolete
+		{
+			// TYPESCRIPT LOADER
+			// Reference: https://webpack.js.org/guides/typescript/
+			// Allow processing TypeScript files.
+			test: /\.ts$/,
+			use: 'ts-loader',
+			include: resolvedSrcAppPath,
 		},
 		{
 			// HTML LOADER
 			// Reference: https://github.com/webpack/raw-loader
-			// Allow loading HTML through JS.
+			// Allow loading HTML through JS (require() in template declarations).
 			test: /\.html$/,
-			loader: 'raw-loader'
-		}
+			use: 'raw-loader',
+			include: resolvedSrcAppPath,
+		},
 	);
-
-	return config;
-}
-
-function addCommonPlugins(config)
-{
-	/**
-	 * Plugins
-	 * Reference: http://webpack.github.io/docs/configuration.html#plugins
-	 * List: http://webpack.github.io/docs/list-of-plugins.html
-	 */
 	config.plugins.push(
-		// Reference: http://webpack.github.io/docs/list-of-plugins.html#ignoreplugin
-		// Ignore some modules. Here, avoids loading all locales of Moment.js (rather big! reduces vendor file of 165 KB).
-		// We can then require specific ones. See also http://stackoverflow.com/questions/25384360/how-to-prevent-moment-js-from-loading-locales-with-webpack
-//		new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
-
-		// Reference: http://webpack.github.io/docs/list-of-plugins.html#provideplugin
-		// Automatically requires declared libraries creating global variables.
+		// Provide the jquery library when AngularJS checks if window.jQuery is present,
+		// so that the latter will use it instead of jqLite.
+		// Reference: https://webpack.js.org/plugins/provide-plugin/
+		// Reference: http://stackoverflow.com/questions/36065931/webpack-how-to-make-angular-auto-detect-jquery-and-use-it-as-angular-element-in
 		new webpack.ProvidePlugin(
-		{
-			$: 'jquery',
-			jQuery: 'jquery',
-			_: 'lodash',
-//			moment: 'moment',
-//			angular: 'angular', // No, we have to require it everywhere anyway
-		})
+			{
+				"window.jQuery": "jquery"
+			}
+		),
 	);
 
 	return config;
 }
-
+console.log(JSON.stringify(config));
 
 module.exports = config;

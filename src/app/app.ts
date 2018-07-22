@@ -2,18 +2,19 @@
 import * as angular from 'angular';
 import uirouter from '@uirouter/angularjs';
 
-import { NameModel } from './model/nameModel';
+import { NameModel } from '@model/nameModel';
 
-import '../style/app.styl';
+import '../styles/app.styl';
 
 // Application modules
-import { modelModule } from './model/';
-import { homeModule } from './features/home/';
-import { settingsModule } from './features/settings/';
+import { modelModule } from '@model/.';
+import { homeModule } from '@home/.';
+import { settingsModule } from '@settings/.';
+import { informationModule } from '@directives/showInformationDirective';
 
 import { routing } from './app.config';
 
-angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule ])
+angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule, informationModule ])
 	.config(routing)
 	.run(
 	[
@@ -23,7 +24,8 @@ angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule ]
 		{
 			// Make available in any template...
 			(<any>$rootScope).url = 'https://github.com/PhiLhoSoft/AngularJS-Webpack-TS/';
-			$log.info('Starting the application.');
+			// Trace a bit
+			$log.info('----- Starting the application -----', angular.element); // Should be jQuery, not jqLite
 		}
 	])
 	// Small controller can be declared on the fly...
@@ -39,6 +41,26 @@ angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule ]
 				// Possibly get information from server...
 				ctrl.productName = nameModel.applicationName;
 				ctrl.productVersion = '0.1';
+
+				ctrl.userName = 'Georges';
+				ctrl.userAge = 42;
+				ctrl.userInfo = { originalName: ctrl.userName, currentName: ctrl.userName, nameLength: ctrl.userName ? ctrl.userName.length : 0,
+					age: ctrl.userAge, weight: 100 };
+				ctrl.changeUser = () =>
+				{
+					ctrl.userName = ctrl.userInfo.originalName = ctrl.userName.split('').reverse().join('');
+					ctrl.userAge--;
+					ctrl.userInfo.age--;
+					ctrl.userInfo.weight--;
+				};
+				ctrl.update = (name: string) =>
+				{
+					ctrl.userName = name ? name.toUpperCase() : '(unknown)';
+				};
+				ctrl.alert = (name: string, age: number) =>
+				{
+					alert(`User ${name} is ${age} year${age === 1 ? "" : "s"} old`);
+				};
 			};
 
 			// See http://www.befundoo.com/university/tutorials/angularjs-2-controllers/ (and good idea anyway)

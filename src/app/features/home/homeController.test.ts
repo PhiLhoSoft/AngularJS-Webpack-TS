@@ -1,6 +1,5 @@
 import * as angular from 'angular';
 import 'angular-mocks';
-import 'jasmine-core';
 
 import { homeModule } from './';
 
@@ -29,7 +28,7 @@ describe('Controller: Home', () =>
 	{
 		ctrl.changeName();
 
-		expect(ctrl.name).toBe('Webpack AngularJS Demo');
+		expect(ctrl.name).toBe('Webpack AngularJS with TypeScript Demo');
 	});
 
 	it('should provide a random name', () =>

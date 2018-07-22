@@ -1,0 +1,44 @@
+// React example at https://snack.expo.io/@danielmschmidt/opentracing-example-with-extended-spans
+
+---
+
+import 'zipkin'; // 0.11.1
+import "zipkin-transport-http"; // 0.11.1
+import ZipkinOpentracing from "zipkin-javascript-opentracing"; // 1.5.1
+import * as opentracing from "opentracing"; // 0.14.1
+
+const zipkinBaseUrl = "http://zipkin.danielmschmidt.de";
+
+const tracer = new ZipkinOpentracing({
+  serviceName: "Frontend-Opentracing",
+  endpoint: zipkinBaseUrl,
+  kind: "client"
+});
+opentracing.initGlobalTracer(tracer);
+
+---
+
+  onClick() {
+    const tracer = opentracing.globalTracer();
+    const span = tracer.startSpan('getPerson');
+    const randomNumber = Math.floor(Math.random() * 10) + 1;
+    span.log({ personId: randomNumber });
+    return fetch('http://swapi.danielmschmidt.de/api/people/' + randomNumber)
+      .then(response => response.json())
+      .then(person => {
+        const childSpan = tracer.startSpan('setPerson', { childOf: span });
+
+        this.setState({
+          person: person.name,
+        });
+        childSpan.log({ person: JSON.stringify(person) });
+        childSpan.finish();
+
+        span.finish();
+      })
+      .catch(e => {
+        span.log({ error: e });
+        console.error(e);
+        span.finish();
+      });
+  }

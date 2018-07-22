@@ -40,6 +40,7 @@ module.exports = function karmaConfig(config)
 		plugins.push('karma-phantomjs-launcher');
 		plugins.push('karma-growl-reporter'); // Show notifications in the tray
 		plugins.push('karma-coverage');
+		plugins.push('karma-remap-coverage');
 	}
 	var reporters = [ 'dots' ];
 	if (verbose)
@@ -53,6 +54,7 @@ module.exports = function karmaConfig(config)
 		// Reference: https://github.com/karma-runner/karma-coverage
 		// Output code coverage files.
 		reporters.push('coverage');
+		reporters.push('remap-coverage');
 		reporters.push('growl');
 	}
 
@@ -70,7 +72,7 @@ module.exports = function karmaConfig(config)
 
 		files:
 		[
-			'src/tests.webpack.js'
+			'./src/tests.webpack.js'
 		],
 		exclude: [],
 
@@ -78,8 +80,8 @@ module.exports = function karmaConfig(config)
 		{
 			// Reference: http://webpack.github.io/docs/testing.html
 			// Reference: https://github.com/webpack/karma-webpack
-			// Convert files with Webpack and load sourcemaps.
-			'src/tests.webpack.js': [ 'webpack', 'sourcemap' ]
+			// Convert files with Webpack which handles sourcemaps.
+			'./src/tests.webpack.js': [ 'webpack' ]
 		},
 
 		// Run tests using Chrome (for debugging) or PhantomJS
@@ -87,21 +89,6 @@ module.exports = function karmaConfig(config)
 
 		autoWatch: debug,
 		singleRun: !debug,
-
-		// Configure code coverage reporter
-		coverageReporter:
-		{
-			dir: 'coverage/',
-			subdir: function (browser)
-			{
-				return browser.toLowerCase().split(/[ /-]/)[0];
-			},
-			reporters:
-			[
-				{ type: 'text-summary' },
-				{ type: 'html' }
-			]
-		},
 		specReporter:
 		{
 			maxLogLines: 5,         // limit number of lines logged per test
@@ -125,5 +112,35 @@ module.exports = function karmaConfig(config)
 			noInfo: 'errors-only'
 		}
 	};
+	if (!debug)
+	{
+		// Not needed, this calls Istanbul instrumentation, but this is done by Webpack with istanbul-instrumenter-loader
+		// configuration.preprocessors['./src/app/app.ts'] = [ 'webpack', 'sourcemap', 'coverage' ];
+		// configuration.preprocessors['./src/**/*.ts'] = [ 'webpack', 'sourcemap', 'coverage' ];
+
+		// Configure code coverage reporter
+		configuration.coverageReporter =
+		{
+			// save interim raw coverage report in memory
+			type: 'in-memory',
+			// dir: './coverage/',
+			// subdir: function (browser)
+			// {
+			// 	return browser.toLowerCase().split(/[ /-]/)[0];
+			// },
+			// reporters:
+			// [
+			// 	{ type: 'text-summary' },
+			// 	{ type: 'html' }
+			// ]
+		};
+
+		// Define where to save final remaped coverage reports
+		configuration.remapCoverageReporter =
+		{
+			'text-summary': null, // to show summary in console
+			'html': './coverage/html'
+		};
+	}
 	config.set(configuration);
 };

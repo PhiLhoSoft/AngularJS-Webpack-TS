@@ -11,8 +11,6 @@ export class GreetingDirective implements ng.IDirective
 	public template = '<div>Hello, {{name}}</div>';
 	public scope = { name: '=' };
 
-	private $timeout: ng.ITimeoutService; // Here mostly to show how stuff is injected in directives
-
 	public static factory(): ng.IDirectiveFactory
 	{
 		const directive = ($timeout: ng.ITimeoutService) =>
@@ -25,9 +23,8 @@ export class GreetingDirective implements ng.IDirective
 		return directive;
 	}
 
-	constructor($timeout: ng.ITimeoutService)
+	public constructor(private $timeout: ng.ITimeoutService) // $timeout is mostly here to show how stuff is injected in directives
 	{
-		this.$timeout = $timeout;
 	}
 
 	// Simple directive without controller
@@ -37,7 +34,7 @@ export class GreetingDirective implements ng.IDirective
 		this.$timeout(() =>
 		{
 			scope.name = 'timeout';
-		}, 10000);
+		}, 10000); // Yeah, pretty stupid usage, sue me
 	}
 }
 

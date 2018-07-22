@@ -1,6 +1,5 @@
 import * as angular from 'angular';
 import 'angular-mocks';
-import 'jasmine-core';
 
 import { settingsModule } from './';
 
@@ -19,23 +18,25 @@ describe('Directive: addName', () =>
 	{
 		angular.mock.module(settingsModule);
 
-		angular.mock.inject(($injector: ng.auto.IInjectorService, $rootScope: ng.IRootScopeService, $compile: ng.ICompileService) =>
+		angular.mock.inject(($rootScope: ng.IRootScopeService, $compile: ng.ICompileService, $templateCache: ng.ITemplateCacheService) =>
 		{
 			scope = <TestScope>$rootScope.$new();
 			compile = $compile;
+			$templateCache.put('addName.html', '<div></div>');
 		});
 	});
 
 	it('should disable if the list of names is not provided', () =>
 	{
 		let addName = compile('<add-name list="names"></add-name>')(scope);
+		scope.$digest();
 
 		expect(addName).not.toBeNull();
 
 		let isolatedScope = <AddNameScope>addName.isolateScope();
 		expect(isolatedScope.list).toBeUndefined();
 
-		let ctrl = isolatedScope.an;
+		let ctrl = (<any>isolatedScope).an;
 		expect(ctrl.isDisabled).toBe(true);
 		expect(ctrl.addNameTooltip).toBe('No names provided');
 	});
@@ -44,13 +45,14 @@ describe('Directive: addName', () =>
 	{
 		scope.names = [ 'a', 'b' ];
 		let addName = compile('<add-name list="names"></add-name>')(scope);
+		scope.$digest();
 
 		expect(addName).not.toBeNull();
 
 		let isolatedScope = <AddNameScope>addName.isolateScope();
 		expect(isolatedScope.list).toBe(scope.names);
 
-		let ctrl = isolatedScope.an; // controllerAs=an
+		let ctrl = (<any>isolatedScope).an;
 		expect(ctrl.isDisabled).toBe(true);
 		expect(ctrl.addNameTooltip).toBe('Need a name');
 	});
@@ -59,11 +61,12 @@ describe('Directive: addName', () =>
 	{
 		scope.names = [ 'alpha', 'beta' ];
 		let addName = compile('<add-name list="names"></add-name>')(scope);
+		scope.$digest();
 
 		expect(addName).not.toBeNull();
 
 		let isolatedScope = <AddNameScope>addName.isolateScope();
-		let ctrl = isolatedScope.an; // controllerAs=an
+		let ctrl = (<any>isolatedScope).an;
 		ctrl.name = scope.names[0];
 		ctrl.check();
 
@@ -75,12 +78,14 @@ describe('Directive: addName', () =>
 	{
 		scope.names = [ 'one', 'two' ];
 		let addName = compile('<add-name list="names"></add-name>')(scope);
+		scope.$digest();
 
 		expect(addName).not.toBeNull();
 
 		let isolatedScope = <AddNameScope>addName.isolateScope();
 		spyOn(isolatedScope, '$emit');
-		let ctrl = isolatedScope.an; // controllerAs=an
+
+		let ctrl = (<any>isolatedScope).an;
 		ctrl.name = 'three';
 		ctrl.check();
 
@@ -89,6 +94,6 @@ describe('Directive: addName', () =>
 
 		ctrl.add();
 
-		expect(isolatedScope.$emit).toHaveBeenCalledWith('addName', ctrl.name);
+		expect(isolatedScope.$emit).toHaveBeenCalledWith('AddName', ctrl.name);
 	});
 });

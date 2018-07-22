@@ -7,12 +7,14 @@ var nodePath = require('path'); // Some settings want relative paths, others wan
 var webpack = require('webpack');
 var autoprefixer = require('autoprefixer');
 
-var WebpackFailPlugin = require('webpack-fail-plugin');
-var RemoveWebpackPlugin = require('remove-webpack-plugin');
+// Plugins
+// var CleanWebpackPlugin = require('clean-webpack-plugin'); // Internal solution, or just use rimraf in the npm script
 var HtmlWebpackPlugin = require('html-webpack-plugin');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
+var TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
+// Paths
 var srcPath = './src/';
 var prodPath = './public/';
 var srcScriptPath = srcPath + 'app/';
@@ -61,54 +63,7 @@ var dependencies = require('./package.json').dependencies;
 var config;
 if (isTest)
 {
-	// Configuration is much simpler in test (no CSS, etc.)
-	config =
-	{
-		devtool: 'inline-source-map',
-
-		module:
-		{
-			preLoaders:
-			[
-				{
-					test: /\.ts$/,
-					loader: 'tslint-loader',
-					exclude: /node_modules/,
-				}
-			],
-			loaders:
-			[
-				{
-					// STYLUS LOADER
-					test: /\.styl$/,
-					loader: 'null'
-				},
-				{
-					// CSS LOADER
-					// For CSS files from modules.
-					test: /\.css$/,
-					loader: 'null'
-				},
-			]
-		},
-
-		plugins: [],
-	};
-	if (!isDebugTest)
-	{
-		// ISTANBUL LOADER
-		// Reference: https://github.com/deepsweet/istanbul-instrumenter-loader
-		// Instrument JS files with Istanbul for subsequent code coverage reporting.
-		// Skips node_modules and files that end with .test.js.
-		config.module.preLoaders.push(
-			{
-				test: /\.js$/,
-				include: nodePath.resolve(srcScriptPath),
-				exclude: /\.test\.js$/,
-				loader: 'istanbul-instrumenter'
-			}
-		);
-	}
+	config = makeWebpackTestConfig();
 }
 else
 {
@@ -128,7 +83,7 @@ function makeWebpackConfig()
 	 */
 	config.entry =
 	{
-		app: srcScriptPath + 'app.js',
+		app: srcScriptPath + 'app.ts',
 		// Defines the modules that go to the 'vendor' bundle.
 		vendor: Object.keys(dependencies),
 	};
@@ -157,6 +112,15 @@ function makeWebpackConfig()
 		// Only adds hash in build mode
 		chunkFilename: isProd ? '[name].[chunkhash].js' : '[name].bundle.js'
 	};
+
+	if (isProd)
+	{
+		config.mode = 'production';
+	}
+	else
+	{
+		config.mode = 'development';
+	}
 
 	/**
 	 * Don't parse large libraries putting stuff at the global level.
@@ -190,13 +154,40 @@ function makeWebpackConfig()
 	 * This handles most of the magic responsible for converting modules.
 	 */
 
+	var styleLoader =
+	{
+		loader: isProd ? MiniCssExtractPlugin.loader : 'style-loader',
+		options: { sourceMap: true },
+	};
+
+	/**
+	 * PostCSS
+	 * Reference: https://github.com/postcss/autoprefixer-core
+	 * Add vendor prefixes to your CSS.
+	 */
+	var postcssLoader =
+	{
+		loader: 'postcss-loader',
+		options:
+		{
+			sourceMap: true,
+			config: { ctx: { autoprefixer: { browsers: [ 'last 2 versions' ] } } }
+		}
+	};
+
 	// Initialize module
-	var cssPipeline = 'css?sourceMap!postcss!stylus';
 	config.module =
 	{
-		preLoaders: [],
-		loaders:
+		rules:
 		[
+			{
+				// TYPESCRIPT LOADER
+				// Reference: https://webpack.js.org/guides/typescript/
+				// Allow processing TypeScript files.
+				test: /\.ts$/,
+				use: 'ts-loader',
+				exclude: /node_modules/,
+			},
 			{
 				// STYLUS LOADER
 				// Reference: https://github.com/shama/stylus-loader
@@ -208,22 +199,33 @@ function makeWebpackConfig()
 				// Reference: https://github.com/webpack/css-loader
 				// Allow loading CSS through JS (with require('foo.css')).
 				//
-				// Reference: https://github.com/webpack/extract-text-webpack-plugin
+				// Reference: https://github.com/webpack-contrib/mini-css-extract-plugin
 				// Then extract CSS files (out of JS) in production builds
 				//
 				// Reference: https://github.com/webpack/style-loader
 				// Adds CSS to the DOM by injecting a <style> tag. Used in development.
 				test: /\.styl$/,
-				// loader: 'style-loader!css-loader!stylus-loader'
 				// Extract CSS to a separate file (loads in parallel with JS, so faster)
-				loader: ExtractTextPlugin.extract('style', cssPipeline)
+				use:
+				[
+					styleLoader,
+					{ loader: 'css-loader', options: { sourceMap: true } },
+					postcssLoader,
+					{ loader: 'stylus-loader', options: { sourceMap: true } },
+				],
+				exclude: /node_modules/,
 			},
 			{
 				// CSS LOADER
 				// For CSS files from modules.
 				test: /\.css$/,
 				// Use the 'style' loader after treatment by the CSS loader (minification with source map)
-				loader: ExtractTextPlugin.extract('style', 'css?sourceMap')
+				use:
+				[
+					styleLoader,
+					{ loader: 'css-loader', options: { sourceMap: true } },
+					postcssLoader,
+				],
 			},
 		],
 	};
@@ -235,7 +237,7 @@ function makeWebpackConfig()
 	// You can add here any file extension you want to get copied to your output.
 	if (isProd)
 	{
-		config.module.loaders.push(
+		config.module.rules.push(
 			{
 				// Manage the font files specifically (warning: SVG can be used for something else than fonts!)
 				test: /\.(svg|woff|woff2|ttf|eot)$/,
@@ -244,18 +246,6 @@ function makeWebpackConfig()
 				{
 					name: './fonts/[name].[ext]',
 					publicPath: './'  // A bit clumsy as it generates ./../fonts/xxx but it works. Empty string is seen as false :-(
-				}
-			},
-			{
-				// Templates load flag images per country code, we need to preserve their names (and path)
-				// and we just copy the corresponding folder with the CopyWebpackPlugin, so we prevent emitting the files.
-				test: /[\\\/]flags[\\\/].*\.png$/,
-				loader: 'file',
-				query:
-				{
-					emitFile: false,
-					name: '[name].[ext]',
-					publicPath: prodPath + 'images/flags/',
 				}
 			},
 			{
@@ -275,7 +265,7 @@ function makeWebpackConfig()
 	else
 	{
 		// Just copy the files as is
-		config.module.loaders.push(
+		config.module.rules.push(
 			{
 				test: /\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/,
 				loader: 'file',
@@ -283,55 +273,34 @@ function makeWebpackConfig()
 		);
 	}
 
-	config.stylus =
-	{
-		use: [ require('nib')() ],
-		// Had to import explicitly nib from main style file, to set variables deactivating obsolete Flexbox properties.
-//		import: [ '~nib/lib/nib/index.styl' ] // ~ means "in node_modules directory"
-	};
-
-	/**
-	 * PostCSS
-	 * Reference: https://github.com/postcss/autoprefixer-core
-	 * Add vendor prefixes to your CSS.
-	 */
-	config.postcss =
-	[
-		autoprefixer(
-		{
-			browsers: [ 'last 2 versions' ]
-		})
-	];
-
 	// Linters and hinters
-	config.module.preLoaders.push(
+	config.module.rules.push(
 		{
+			enforce: 'pre',
 			test: /\.html$/,
 			include: nodePath.resolve(srcPath + 'app/'),
 			loader: 'htmlhint'
 		},
 		{
+			enforce: 'pre',
 			test: /\.styl$/,
 			include: nodePath.resolve(srcPath + 'app/styles'),
 			loader: 'stylint'
 		},
 		{
+			enforce: 'pre',
 			test: /\.js$/,
 			include: nodePath.resolve(srcScriptPath),
 			loader: 'eslint-loader'
 		}
 	);
-	config.stylint =
-	{
-		config: nodePath.resolve(srcPath + '.stylintrc')
-	};
+	// config.stylint =
+	// {
+	// 	config: nodePath.resolve(srcPath + '.stylintrc')
+	// };
 
 	config.plugins =
 	[
-		// Reference: webpack-fail-plugin
-		// See also https://github.com/webpack/webpack/issues/708
-		WebpackFailPlugin,
-
 		// Reference: https://github.com/ampedandwired/html-webpack-plugin
 		// Render index.html, adding paths to generated style and JS files at appropriate places.
 		new HtmlWebpackPlugin(
@@ -344,34 +313,54 @@ function makeWebpackConfig()
 			inject: 'body'
 		}),
 
-		// Reference: https://github.com/webpack/extract-text-webpack-plugin
+		// Reference: https://github.com/webpack-contrib/mini-css-extract-plugin
 		// Extract CSS to one file (otherwise it is inlined in the JS).
 		// Disabled when not in build mode.
-		new ExtractTextPlugin('[name].[chunkhash].css', { disable: !isProd }),
-
-		// Reference: https://github.com/webpack/docs/wiki/list-of-plugins#commonschunkplugin
-		// Separates the libraries from the application.
-		new webpack.optimize.CommonsChunkPlugin(
+		new MiniCssExtractPlugin(
 		{
-			name: 'vendor',
-			filename: isProd ? 'vendor.[chunkhash].js' : 'vendor.bundle.js',
-			minChunks: Infinity
-		})
+			filename: isProd ? '[name].[chunkhash].css' : '[name].css',
+		}),
 	];
 
 	// Add build specific plugins
 	if (isProd)
 	{
-		config.plugins.push(
-			// Reference: http://webpack.github.io/docs/list-of-plugins.html#noerrorsplugin
-			// Only emit files when there are no errors.
-			new webpack.NoErrorsPlugin(),
+		// Reference: https://webpack.js.org/plugins/split-chunks-plugin/
+		// Separates the libraries from the application.
+		config.optimization =
+		{
+			minimize: true,
+			splitChunks:
+			{
+				cacheGroups:
+				{
+					vendors:
+					{
+						name: 'vendor',
+						test: /[\\/]node_modules[\\/]/,
+						chunks: 'all',
+					},
+					styles:
+					{
+						name: 'styles',
+						test: /\.css$/,
+						chunks: 'all',
+						enforce: true,
+					}
+				}
+			}
+		};
 
-			// Reference: https://github.com/aleksei0807/remove-webpack-plugin
+		config.plugins.push(
+			// Reference: https://webpack.js.org/plugins/no-emit-on-errors-plugin/
+			// Only emit files when there are no errors.
+			new webpack.NoEmitOnErrorsPlugin(),
+
+			// Reference: https://github.com/johnagan/clean-webpack-plugin
 			// Clean the destination directories / files: since names are generated with hashes, they won't be overwritten.
-			new RemoveWebpackPlugin(
-				[ prodPath, ]
-			),
+			// new CleanWebpackPlugin(
+			// 	[ prodPath, ]
+			// ),
 
 			// Reference: https://github.com/kevlened/copy-webpack-plugin
 			// Copy assets to the destination relative to build directory (declared in 'output' configuration).
@@ -388,16 +377,6 @@ function makeWebpackConfig()
 					to: './'
 				},
 			]),
-
-			// Reference: http://webpack.github.io/docs/list-of-plugins.html#uglifyjsplugin
-			// Minify all JavaScript, switch loaders to minimizing mode.
-			new webpack.optimize.UglifyJsPlugin(
-			{
-				compress:
-				{
-					warnings: false // Warnings are pointless: we use ESLint, and don't want warnings on libraries!
-				}
-			})
 		);
 	}
 
@@ -415,6 +394,58 @@ function makeWebpackConfig()
 	return config;
 }
 
+function makeWebpackTestConfig()
+{
+	// Configuration is much simpler in test (no CSS, etc.)
+	return {
+		mode: 'development',
+
+		devtool: 'inline-source-map',
+
+		module:
+		{
+			rules:
+			[
+				{
+					enforce: 'pre',
+					test: /\.ts$/,
+					loader: 'tslint-loader',
+					exclude: /node_modules/,
+				},
+				{
+					// STYLUS LOADER
+					test: /\.styl$/,
+					loader: 'null'
+				},
+				{
+					// CSS LOADER
+					// For CSS files from modules.
+					test: /\.css$/,
+					loader: 'null'
+				},
+			]
+		},
+
+		plugins: [],
+	};
+	if (!isDebugTest)
+	{
+		// ISTANBUL LOADER
+		// Reference: https://github.com/deepsweet/istanbul-instrumenter-loader
+		// Instrument JS files with Istanbul for subsequent code coverage reporting.
+		// Skips node_modules and files that end with .test.js.
+		config.module.rules.push(
+			{
+				enforce: 'pre',
+				test: /\.js$/,
+				include: nodePath.resolve(srcScriptPath),
+				exclude: /\.test\.js$/,
+				loader: 'istanbul-instrumenter'
+			}
+		);
+	}
+}
+
 function addResolve(config)
 {
 	/**
@@ -424,18 +455,19 @@ function addResolve(config)
 	 */
 	config.resolve =
 	{
-		alias:
-		{
-			// awp for angular-webpack-playground
-			'awp-root': nodePath.resolve(srcScriptPath),
-			'awp-app': nodePath.resolve(srcScriptPath, 'features'),
-			'awp-home': nodePath.resolve(srcScriptPath, 'features/home'),
-			'awp-settings': nodePath.resolve(srcScriptPath, 'features/settings'),
-			'awp-model': nodePath.resolve(srcScriptPath, 'model'),
-			'awp-directives': nodePath.resolve(srcScriptPath, 'directives'),
-			'awp-services': nodePath.resolve(srcScriptPath, 'services'),
-		},
-		//extensions: [ '', '.html', '.js' ],
+		// alias:
+		// {
+		// 	'@root': nodePath.resolve(srcScriptPath),
+		// 	'@app': nodePath.resolve(srcScriptPath, 'features'),
+		// 	'@home': nodePath.resolve(srcScriptPath, 'features/home'),
+		// 	'@settings': nodePath.resolve(srcScriptPath, 'features/settings'),
+		// 	'@model': nodePath.resolve(srcScriptPath, 'model'),
+		// 	'@directives': nodePath.resolve(srcScriptPath, 'directives'),
+		// 	'@services': nodePath.resolve(srcScriptPath, 'services'),
+		// },
+		// Replaced with the following to generate the aliases from tsconfig (one source of truth is better...)
+		plugins: [ new TsconfigPathsPlugin() ],
+		extensions: [ '.ts', '.js', '.json', '.html', '.styl' ],
 	};
 
 	return config;
@@ -443,21 +475,21 @@ function addResolve(config)
 
 function addCommonLoaders(config)
 {
-	config.module.loaders.push(
+	config.module.rules.push(
 		{
 			// Load jQuery and expose it as global variable before loading AngularJS,
 			// so that the latter will use it instead of jqLite.
 			// Reference: https://github.com/webpack/expose-loader
 			// and http://stackoverflow.com/questions/36065931/webpack-how-to-make-angular-auto-detect-jquery-and-use-it-as-angular-element-in
 			test: require.resolve('jquery'), // Full path in node_modules
-			loader: 'expose?$!expose?jQuery'
+			loader: 'expose-loader?$!expose-loader?jQuery'
 		},
 		{
 			// HTML LOADER
 			// Reference: https://github.com/webpack/raw-loader
 			// Allow loading HTML through JS.
 			test: /\.html$/,
-			loader: 'raw'
+			loader: 'raw-loader'
 		}
 	);
 
@@ -472,10 +504,6 @@ function addCommonPlugins(config)
 	 * List: http://webpack.github.io/docs/list-of-plugins.html
 	 */
 	config.plugins.push(
-		// Reference: http://webpack.github.io/docs/list-of-plugins.html#dedupeplugin
-		// Dedupe modules in the output.
-		new webpack.optimize.DedupePlugin(),
-
 		// Reference: http://webpack.github.io/docs/list-of-plugins.html#ignoreplugin
 		// Ignore some modules. Here, avoids loading all locales of Moment.js (rather big! reduces vendor file of 165 KB).
 		// We can then require specific ones. See also http://stackoverflow.com/questions/25384360/how-to-prevent-moment-js-from-loading-locales-with-webpack

@@ -1,6 +1,6 @@
 // Libraries, using the NPM name (used in package.json)
-import { angular } from 'angular';
-import { uirouter } from 'angular-ui-router';
+import * as angular from 'angular';
+import uirouter from '@uirouter/angularjs';
 
 import { NameModel } from './model/nameModel';
 
@@ -19,26 +19,26 @@ angular.module('demo-app', [ uirouter, modelModule, homeModule, settingsModule ]
 	[
 		// Some services / factories can be injected here to bootstrap them
 		'$rootScope', '$log',
-		function ($rootScope: angular.IScope, $log: angular.ILogService)
+		function ($rootScope: angular.IScope, $log: angular.ILogService): void
 		{
-			$rootScope.url = 'https://github.com/angular-tips/webpack-demo/';
-			$rootScope.url2 = 'https://github.com/PhiLhoSoft/AngularJS-Webpack-TS/';
+			// Make available in any template...
+			(<any>$rootScope).url = 'https://github.com/PhiLhoSoft/AngularJS-Webpack-TS/';
 			$log.info('Starting the application.');
 		}
 	])
 	// Small controller can be declared on the fly...
 	.controller('AboutController',
 	[
-		'$scope', 'nameModel', // Component still has to be injected the old way...
-		function AboutController($scope: angular.IScope, nameModel: NameModel)
+		'$scope', 'nameModel', // Components still has to be injected the old way...
+		function AboutController($scope: angular.IScope, nameModel: NameModel): void
 		{
-			var ctrl = this;
+			const ctrl = this;
 
 			ctrl._activate = function ()
 			{
 				// Possibly get information from server...
 				ctrl.productName = nameModel.applicationName;
-				ctrl.productVersion = '0.2';
+				ctrl.productVersion = '0.1';
 			};
 
 			// See http://www.befundoo.com/university/tutorials/angularjs-2-controllers/ (and good idea anyway)

@@ -1,26 +1,21 @@
-import { angular } from 'angular';
+import * as angular from 'angular';
 
-interface GreetingScope extends angular.IScope
+interface GreetingScope extends ng.IScope
 {
 	name: string;
 }
 
-export class GreetingDirective implements angular.IDirective
+export class GreetingDirective implements ng.IDirective
 {
 	public restrict = 'E';
 	public template = '<div>Hello, {{name}}</div>';
 	public scope = { name: '=' };
 
-	private $timeout: angular.ITimeoutService; // Not used, it is just here to show how stuff is injected in directives
+	private $timeout: ng.ITimeoutService; // Here mostly to show how stuff is injected in directives
 
-	constructor($timeout: angular.ITimeoutService)
+	public static factory(): ng.IDirectiveFactory
 	{
-		this.$timeout = $timeout;
-	}
-
-	public static Factory(): angular.IDirectiveFactory
-	{
-		var directive = ($timeout: angular.ITimeoutService) =>
+		const directive = ($timeout: ng.ITimeoutService) =>
 		{
 			return new GreetingDirective($timeout);
 		};
@@ -30,14 +25,23 @@ export class GreetingDirective implements angular.IDirective
 		return directive;
 	}
 
+	constructor($timeout: ng.ITimeoutService)
+	{
+		this.$timeout = $timeout;
+	}
+
 	// Simple directive without controller
-	public link(scope: GreetingScope, element: angular.IAugmentedJQuery, attrs: angular.IAttributes)
+	public link(scope: GreetingScope, element: ng.IAugmentedJQuery, attrs: ng.IAttributes)
 	{
 		scope.name = scope.name || 'World';
+		this.$timeout(() =>
+		{
+			scope.name = 'timeout';
+		}, 10000);
 	}
 }
 
 // Reusable directive is isolated in its own module...
 export const greetingModule = angular.module('directives.greeting', [ /* Inject here external libraries if any is used */ ])
-	.directive('greeting', GreetingDirective.Factory())
+	.directive('greeting', GreetingDirective.factory())
 	.name;

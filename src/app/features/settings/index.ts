@@ -1,14 +1,13 @@
-import { angular } from 'angular';
-import { uirouter } from 'angular-ui-router';
+import * as angular from 'angular';
 
 import { AddNameDirective } from './addNameDirective';
 import { AddNameController } from './addNameController';
 import { SettingsController } from './settingsController';
 
-import './settings.styl';
+import 'settings.styl';
 
-export const settingsModule = angular.module('app.settings', [ uirouter ])
-	.directive('addName', AddNameDirective)
+export const settingsModule = angular.module('app.settings', [])
+	.directive('addName', AddNameDirective.factory())
 	.controller('AddNameController', AddNameController)
 	.controller('SettingsController', SettingsController)
 	.name;

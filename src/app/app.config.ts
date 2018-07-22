@@ -1,35 +1,36 @@
-import angular from 'angular';
-import uiRouter from 'angular-ui-router';
+import * as uirouter from '@uirouter/angularjs';
 
-(<any>routing).$inject = [ '$urlRouterProvider', '$locationProvider', '$stateProvider' ];
+// tslint:disable no-require-imports
+declare function require(name: string): any; // Webpack will manage the require calls
 
-export function routing($urlRouterProvider: angular.ui.IUrlRouterProvider, $locationProvider: any, $stateProvider: angular.ui.IStateProvider): void
+(<any>routing).$inject = [ '$urlRouterProvider', '$stateProvider', '$locationProvider' ];
+
+export function routing($urlRouterProvider: uirouter.UrlRouterProvider, $stateProvider: uirouter.StateProvider, $locationProvider: ng.ILocationProvider): void
 {
 	// $log cannot be injected here (config()) as it is not available yet
-	console.log('Defining routing for app');
+	// console.log('Defining routing for app');
 	$locationProvider.html5Mode(true);
 	$urlRouterProvider.otherwise('/');
 
-	// TODO remove require()
 	$stateProvider
 		.state('home',
 		{
 			url: '/',
-			template: require('home/home.html'),
+			template: require('features/home/home.html'),
 			controller: 'HomeController',
 			controllerAs: 'home'
 		})
 		.state('settings',
 		{
 			url: '/settings',
-			template: require('settings/settings.html'),
+			template: require('features/setting/settings.html'),
 			controller: 'SettingsController',
 			controllerAs: 'settings'
 		})
 		.state('about',
 		{
 			url: '/about',
-			template: require('./about.html'),
+			template: require('about.html'),
 			controller: 'AboutController',
 			controllerAs: 'about'
 		});

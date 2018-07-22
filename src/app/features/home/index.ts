@@ -1,15 +1,14 @@
-import { angular } from 'angular';
-import { uirouter } from 'angular-ui-router';
+import * as angular from 'angular';
 
-import { greetingModule } from '../../directives/greetingDirective';
-import { modelModule } from '../../model/';
-import { randomnessModule } from '../../services/randomnessService';
+import { greetingModule } from '@directives/greetingDirective';
+import { modelModule } from '@model/.';
+import { randomnessModule } from '@services/randomnessService';
 
 import { HomeController } from './homeController';
 
 import './home.styl';
 
-export const homeModule = angular.module('app.home', [ uirouter, modelModule, randomnessModule, greetingModule ])
+export const homeModule = angular.module('app.home', [ modelModule, randomnessModule, greetingModule ])
 	/*
 	We declare the controller here, instead of doing it in homeController.js in the classical Angular way,
 	because otherwise the controller file would be isolated from the Webpack tree of dependencies, so it wouldn't process it:

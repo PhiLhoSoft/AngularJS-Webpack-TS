@@ -1,35 +1,38 @@
-var angular = require('angular');
-//~ var app = require('../../app');
-var home = require('./index');
+import * as angular from 'angular';
+import 'angular-mocks';
+import 'jasmine-core';
 
-describe('Controller: Home', function ()
+import { homeModule } from './';
+
+import { HomeController } from './homeController';
+
+describe('Controller: Home', () =>
 {
-	var ctrl;
+	let ctrl: HomeController;
 
-	beforeEach(function ()
+	beforeEach(() =>
 	{
-//~ 		angular.mock.module(app);
-		angular.mock.module(home);
+		angular.mock.module(homeModule);
 
-		angular.mock.inject(function ($controller)
+		angular.mock.inject(function ($controller: ng.IControllerService)
 		{
 			ctrl = $controller('HomeController', {});
 		});
 	});
 
-	it('should have name initialized to "World"', function ()
+	it('should have name initialized to "World"', () =>
 	{
 		expect(ctrl.name).toBe('World');
 	});
 
-	it('should change name', function ()
+	it('should change name', () =>
 	{
 		ctrl.changeName();
 
 		expect(ctrl.name).toBe('Webpack AngularJS Demo');
 	});
 
-	it('should provide a random name', function ()
+	it('should provide a random name', () =>
 	{
 		ctrl.randomizeName();
 

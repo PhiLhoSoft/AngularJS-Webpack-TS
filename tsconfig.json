@@ -1,32 +1,40 @@
 {
-	"compilerOptions": 
+	"compilerOptions":
 	{
-		"outDir": "build/dist",
-		"module": "commonjs",
-		"target": "es5",
-		"lib": ["es6", "dom"],
-		"sourceMap": true,
-		"allowJs": true,
-		"jsx": "react",
-		"moduleResolution": "node",
 		"rootDir": "src",
+		"outDir": "build",
+		"module": "es2015",
+		"target": "es5",
+		"lib": [ "es6", "dom" ],
+		"sourceMap": true,
+		"allowJs": false,
+		"moduleResolution": "node",
+		"typeRoots": [ "node_modules/@types" ],
+		"baseUrl": "./src/app",
+		"paths":
+		{
+			"@root/*": [ "*" ],
+			"@app/*": [ "features/*" ],
+			"@home/*": [ "features/home/*" ],
+			"@settings/*": [ "features/settings/*" ],
+			"@model/*": [ "model/*" ],
+			"@directives/*": [ "directives/*" ],
+			"@services/*": [ "services/*" ]
+		},
+		"preserveConstEnums": true,
 		"noImplicitReturns": true,
-		"noImplicitThis": true,
 		"noImplicitAny": true,
-		"strictNullChecks": true
+		"noImplicitThis": false,
+		"strictNullChecks": false,
+		"skipLibCheck": true
 	},
 	"exclude":
 	[
 		"node_modules",
 		"build",
+		"dist",
+		"public",
 		"scripts",
-		"acceptance-tests",
-		"webpack",
-		"jest",
-		"src/setupTests.ts"
-	],
-	"types":
-	[
-		"typePatches"
+		"coverage"
 	]
 }

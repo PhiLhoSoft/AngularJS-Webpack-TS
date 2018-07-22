@@ -1,17 +1,17 @@
-import { angular } from 'angular';
+import { AddNameScope } from './addNameDirective';
 
 export class AddNameController
 {
-	static $inject = [ '$scope' ];
+	public static $inject = [ '$scope' ];
 
-	public $scope: angular.IScope;
+	public $scope: AddNameScope;
 
 	public list: Array<string>;
 	public name: string;
 	public isDisabled: boolean;
 	public addNameTooltip: string;
 
-	controller($scope: angular.IScope)
+	controller($scope: AddNameScope)
 	{
 		this.$scope = $scope;
 

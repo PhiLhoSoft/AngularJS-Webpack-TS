@@ -1,6 +1,6 @@
 // Entry point for the 'model' module, exposing several (only one here...) services holding the application's model.
 
-import { angular } from 'angular';
+import * as angular from 'angular';
 
 import { NameModel } from './nameModel';
 

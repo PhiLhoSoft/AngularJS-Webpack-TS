@@ -1,22 +1,21 @@
-import { angular } from 'angular';
+import * as angular from 'angular';
 
+// Yeah, it is a stupid service, just needed something simple for demonstration...
 export class Randomness<T>
 {
 	public getFromArray(array: Array<T>, previous?: T): T | undefined
 	{
-		var itemNb = array.length;
-		if (itemNb === 0)
-			return;
-		if (itemNb === 1)
-			return array[0];
-		var item = previous; // Can be undefined, eg. on first call
+		let itemNb = array.length;
+		if (itemNb === 0) return undefined;
+		if (itemNb === 1) return array[0];
+		let item = previous; // Can be undefined, eg. on first call
 		while (item === previous)
 		{
-			var random = Math.floor(Math.random() * itemNb);
+			let random = Math.floor(Math.random() * itemNb);
 			item = array[random];
 		}
 		return item;
-	};
+	}
 }
 
 // Reusable service is isolated in its own module, can be moved to another app.
